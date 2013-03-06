@@ -10,6 +10,7 @@ test_strategy(N, P1Strategy, P2Strategy) :-
     test_strategy_helper(N, P1Strategy, P2Strategy, Results, GamesMovesNumber),
     statistics(runtime, [T1|_]),
     T is T1 - T0,
+    write(N), write('\n'),
     AvgT is T/N,
     delete(GamesMovesNumber,250,PGames),
     max_member(Max,PGames),
@@ -25,10 +26,10 @@ test_strategy(N, P1Strategy, P2Strategy) :-
     write('Longest (non-exhaustive) game: '), write(Max), write('\n'),
     write('Shortest Game: '), write(Min), write('\n'),
     write('Average game length (including exhaustives): '), write(AvgGames), write('\n'),
-    format('Average game time: ~3f sec.~n', [AvgT/1000]).
+    format('Average game time: ~3f seconds.~n', [AvgT/1000]).
     
-    
-
+% This is helper function for testing the strategy. It loops N times to obtain
+% the information which would be required by the main function.
 test_strategy_helper( 0, _, _, [], []) :- !.
 test_strategy_helper( NGames, P1s, P2s, Results, Games) :-
     play(quiet,P1s,P2s,NumMoves,Winner),
@@ -36,3 +37,30 @@ test_strategy_helper( NGames, P1s, P2s, Results, Games) :-
     test_strategy_helper(N,P1s,P2s,R,G),
     append(R,[Winner],Results),
     append(G,[NumMoves],Games).
+
+
+opponent(r,b).
+opponent(b,r).
+
+empty(X, Y, [Red,Blue]) :-
+    \+ member([X,Y], Red),
+    \+ member([X,Y], Blue).
+
+
+find_all_possible_moves(PieceColour, Board, AllMoves) :-
+    findall(
+        [X,Y,X1,Y1],
+        (   cell(X,Y),
+            what_in_cell(Board, X, Y, P),
+            nieghbour_position(X,Y, [X1,Y1]),
+            empty(X1, Y1, Board)
+        ),
+        AllMoves
+        ).
+
+%This function is used to figure out the next move using the 
+%bloodlust strategy which means the move which causes most pieces of
+%opponent is chosen.
+bloodlust(PieceColour, [Blue, Red], [NewBlue, NewRed], Move) :-
+    opponent(PieceColour, Opp),
+    find_all_possible_moves(PieceColour, [Blue,Red], AllMoves).
