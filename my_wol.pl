@@ -40,6 +40,9 @@ test_strategy_helper( NGames, P1s, P2s, Results, Games) :-
 opponent(r,b).
 opponent(b,r).
 
+colour_num(b,1).
+colour_num(r,2).
+
 empty(X, Y, [Red,Blue]) :-
     \+ member([X,Y], Red),
     \+ member([X,Y], Blue).
@@ -48,31 +51,49 @@ find_all_possible_moves(PieceColour, Board, AllMoves) :-
     findall(
         [X,Y,X1,Y1],
         (   cell(X,Y),
-            what_in_cell(Board, X, Y, P),
-            nieghbour_position(X,Y, [X1,Y1]),
+            what_in_cell(Board, X, Y, PieceColour),
+            neighbour_position(X,Y, [X1,Y1]),
             empty(X1, Y1, Board)
         ),
         AllMoves
         ).
 
-make_move([X,Y,A1,Y1],[Blue,Red],[NewBlue,NewRed]) :-
-    (
-        member([X,Y],Blue),
-        delete(Blue,[X,Y],PartialBlue),
-        append([[X1,Y1]],PartialBlue,NewBlue),
-        NewRed = Red, !
-    ) ;
-    (
-        member([X,Y],Red),
-        delete(Red,[X,Y],PartialRed),
-        append([[X1,Y1]],PartialRed,NewRed),
-        NewBlue = Blue, !
-    ).
+%case when moving a blue piece
+make_move([X,Y,X1,Y1],[Blue,Red],[NewBlue,NewRed]) :-
+    member([X,Y],Blue),
+    delete(Blue,[X,Y],PartialBlue),
+    append([[X1,Y1]],PartialBlue,NewBlue),
+    NewRed = Red, !.
+
+% case when moving a red piece.
+make_move([X,Y,X1,Y1],[Blue,Red],[NewBlue,NewRed]) :-
+    member([X,Y],Red),
+    delete(Red,[X,Y],PartialRed),
+    append([[X1,Y1]],PartialRed,NewRed),
+    NewBlue = Blue, !.
+
+minimum_comparison([NumPieces, _, _],[NumPieces1, _, _]) :-
+    NumPieces < NumPieces1.
 
 %This function is used to figure out the next move using the 
 %bloodlust strategy which means the move which causes most pieces of
 %opponent is chosen.
-bloodlust(PieceColour, [Blue, Red], [NewBlue, NewRed], Move) :-
-    opponent(PieceColour, Opp),
+bloodlust(PieceColour, [Blue, Red], [NewBlue, NewRed], [X,Y,X1,Y1]) :-
+    opponent(PieceColour, Opponent),
+    colour_num(Opponent,OppNum),
     find_all_possible_moves(PieceColour, [Blue,Red], AllMoves),
+    findall(
+        [OppPiecesNumber, [X,Y,X1,Y1],AfterCrankState],
+        (  member([X,Y,X1,Y1],AllMoves),
+           make_move([X,Y,X1,Y1], [Blue,Red], NewState),
+           next_generation(NewState,AfterCrankState),
+           nth1(OppNum,AfterCrankState,OPStates), % gets us the part of the player 
+                                                  % (i.e AfterCrankState[1] is for 
+                                                  % blue and AfterCrankState[2] is for red)
+           length(OPStates,OppPiecesNumber)
+        ),
+        MoveStateList),
+        min_member(minimum_comparison,Min,MoveStateList),
+        nth1(2,Min,[X,Y,X1,Y1]),
+        make_move([X,Y,X1,Y1], [Blue,Red], [NewBlue,NewRed]).
 
