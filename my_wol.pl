@@ -99,7 +99,9 @@ bloodlust(PieceColour, [Blue, Red], [NewBlue, NewRed], [X,Y,X1,Y1]) :-
         make_move([X,Y,X1,Y1], [Blue,Red], [NewBlue,NewRed]).
 
 
-
+/*
+    This strategy focuses on getting more pieces for the current player.
+ */
 self_preservation(PieceColour, [Blue,Red], [NewBlue,NewRed], [X,Y,X1,Y1]) :-
     colour_num(PieceColour, PlayerIndexNum),
     find_all_possible_moves(PieceColour, [Blue,Red], AllMoves),
