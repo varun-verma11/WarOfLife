@@ -93,8 +93,26 @@ bloodlust(PieceColour, [Blue, Red], [NewBlue, NewRed], [X,Y,X1,Y1]) :-
                                                   % blue and AfterCrankState[2] is for red)
            length(OPStates,OppPiecesNumber)
         ),
-        MoveStateList),
-        min_member(minimum_comparison,Min,MoveStateList),
+        MovesResults),
+        min_member(minimum_comparison,Min,MovesResults),
         nth1(2,Min,[X,Y,X1,Y1]),
         make_move([X,Y,X1,Y1], [Blue,Red], [NewBlue,NewRed]).
+
+
+
+self_preservation(PieceColour, [Blue,Red], [NewBlue,NewRed], [X,Y,X1,Y1]) :-
+    colour_num(PieceColour, PlayerIndexNum),
+    find_all_possible_moves(PieceColour, [Blue,Red], AllMoves),
+    findall(
+        [PiecesNumber, [X,Y,X1,Y1],AfterCrankState],
+        (  member([X,Y,X1,Y1],AllMoves),
+           make_move([X,Y,X1,Y1], [Blue,Red], NewState),
+           next_generation(NewState,AfterCrankState),
+           nth1(PlayerIndexNum,AfterCrankState,PStates),
+           length(PStates,PiecesNumber)
+        ),
+        MovesResults),
+    max_member(minimum_comparison, Max, MovesResults),
+    nth1(2,Max,[X,Y,X1,Y1]),
+    make_move([X,Y,X1,Y1], [Blue,Red], [NewBlue,NewRed]).
 
