@@ -8,7 +8,6 @@ test_strategy(N, P1Strategy, P2Strategy) :-
     test_strategy_helper(N, P1Strategy, P2Strategy, Results, GamesMovesNumber),
     statistics(runtime, [T1|_]),
     T is T1 - T0,
-    write(N), write('\n'),
     AvgT is T/N,
     delete(GamesMovesNumber,250,PGames),
     max_member(Max,PGames),
@@ -26,8 +25,10 @@ test_strategy(N, P1Strategy, P2Strategy) :-
     write('Average game length (including exhaustives): '), write(AvgGames), write('\n'),
     format('Average game time: ~3f seconds.~n', [AvgT/1000]).
     
-% This is helper function for testing the strategy. It loops N times to obtain
-% the information which would be required by the main function.
+/*
+    This is helper function for testing the strategy. It loops N times to obtain
+    the information which would be required by the main function.
+ */
 test_strategy_helper( 0, _, _, [], []) :- !.
 test_strategy_helper( NGames, P1s, P2s, Results, Games) :-
     play(quiet,P1s,P2s,NumMoves,Winner),
