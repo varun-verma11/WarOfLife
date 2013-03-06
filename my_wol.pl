@@ -2,8 +2,6 @@
 %ensure that the skeleton file is loaded 
 :-ensure_loaded(war_of_life).
 
-
-
 test_strategy(N, P1Strategy, P2Strategy) :-
     write('----------------------------------------------'), write('\n'),
     statistics(runtime, [T0|_]),
@@ -46,7 +44,6 @@ empty(X, Y, [Red,Blue]) :-
     \+ member([X,Y], Red),
     \+ member([X,Y], Blue).
 
-
 find_all_possible_moves(PieceColour, Board, AllMoves) :-
     findall(
         [X,Y,X1,Y1],
@@ -58,9 +55,24 @@ find_all_possible_moves(PieceColour, Board, AllMoves) :-
         AllMoves
         ).
 
+make_move([X,Y,A1,Y1],[Blue,Red],[NewBlue,NewRed]) :-
+    (
+        member([X,Y],Blue),
+        delete(Blue,[X,Y],PartialBlue),
+        append([[X1,Y1]],PartialBlue,NewBlue),
+        NewRed = Red, !
+    ) ;
+    (
+        member([X,Y],Red),
+        delete(Red,[X,Y],PartialRed),
+        append([[X1,Y1]],PartialRed,NewRed),
+        NewBlue = Blue, !
+    ).
+
 %This function is used to figure out the next move using the 
 %bloodlust strategy which means the move which causes most pieces of
 %opponent is chosen.
 bloodlust(PieceColour, [Blue, Red], [NewBlue, NewRed], Move) :-
     opponent(PieceColour, Opp),
-    find_all_possible_moves(PieceColour, [Blue,Red], AllMoves).
+    find_all_possible_moves(PieceColour, [Blue,Red], AllMoves),
+
