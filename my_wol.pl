@@ -44,6 +44,10 @@ opponent(b,r).
 colour_num(b,1).
 colour_num(r,2).
 
+%needed to distinguish when minimizing or maximizing in the algo
+minimax_num(b,1).
+minimax_num(r,-1).
+
 empty(X, Y, [Red,Blue]) :-
     \+ member([X,Y], Red),
     \+ member([X,Y], Blue).
@@ -143,44 +147,45 @@ land_grab_condition(PieceColour, [Blue, Red], Score, [X,Y,X1,Y1], AfterCrankStat
     length(OpponentStates, OppPiecesNumber),
     Score is PiecesNumber-OppPiecesNumber.
 
+minimax(PieceColour, State, NextState, Move) :-
+    minimax_num(PieceColour,MinimaxValue),
+    do_minimax(2,State,MinimaxValue,_,Move),
+    make_move(Move,State,NextState).
 
-minimax('b',[Blue,Red],[NewBlue,Red],Move) :- 
-    minimax_make_move('b',Blue,Red,Move),
-    alter_board(Move,Blue,NewBlue).
+%base case
+do_minimax(0,State,MinimaxValue,AdjustedScore, _) :-
+    diff_br_score(State,NonAdjustedScore),
+    AdjustedScore is NonAdjustedScore*MinimaxValue.
 
-minimax('r',[Blue,Red],[Blue,NewRed],Move) :- 
-     minimax_make_move('r',Red,Blue,Move),
-     alter_board(Move,Red,NewRed).
+do_minimax(Counter, State, MinimaxValue, Score, Move) :-
+    Counter > 0,
+    Next is Counter-1,
+    minimax_num(PieceColour,MinimaxValue),
+    find_all_possible_moves(PieceColour,State,Moves),
+    select_move_minimax(Moves, State, Next, MinimaxValue, -10000, [], Score, Move).
+% we pass the -10000 as an argument here because we will never reach this score
 
-%minimax(PieceColour, State, UpdatedState, [X,Y,X1,Y1]) :-
+diff_br_score([Blue,Red],Score) :-
+    length(Blue,Bs),
+    length(Red,Rs),
+    Score is Bs-Rs.
 
-minimax_make_move(Colour,PlayerPieces,OppPieces,Move) :-
-    findall(([X,Y,X1,Y1],Score),
-            (
-             member([X,Y],PlayerPieces),neighbour_position(X,Y,[X1,Y1]),
-             \+member([X1,Y1],PlayerPieces),
-             \+member([X1,Y1],OppPieces),
-             minimax_score(Colour,[X,Y,X1,Y1],[PlayerPieces,OppPieces],Score)
-            ),
-            PossibleMoveScore),
-     findall(Score, member((_,Score),PossibleMoveScore),ScoreList),
-     max_member(minimum_comparison, MaxScore, ScoreList),
-     member((Move,MaxScore),PossibleMoveScore).
+%base case
+%we repeat the last 2 arguments here because we need to pass a -10000 (unreachable score) and an empty
+%list to the function.
+select_move_minimax([], _, _, _, Score, SelectedMove, Score, SelectedMove).
 
-minimax_score('b',Move,[Blue,Red],Score)
-   :- alter_board(Move,Blue,NewBlue),
-      next_generation([NewBlue,Red],NextState),
-      land_grab('r',NextState,EndState,_AfterCrank),
-      next_generation(EndState,[EndBlue,EndRed]),
-      length(EndBlue,PlayerScore),
-      length(EndRed,OppScore),
-      Score is PlayerScore - OppScore.
-
-minimax_score('r',Move,[Red,Blue],Score)
-   :- alter_board(Move,Red,NewRed),
-      next_generation([Blue,NewRed],NextState),
-      land_grab('b',NextState,EndState,_AfterCrank),
-      next_generation(EndState,[EndBlue,EndRed]),
-      length(EndBlue,OppScore),
-      length(EndRed,PlayerScore),
-      Score is PlayerScore - OppScore.
+%recursive, go through every more recursively, and finally land on the base case (above),
+%which returns the best move.
+select_move_minimax([CurrMove|Moves],State,Counter,MinimaxValue, CurrMaxScore,CurrBestMove,MaxScore,BestMove):-
+      make_move(CurrMove, State, NextState), 
+      next_generation(NextState,AfterCrankState),
+      OpponentMinimaxValue is (-1)*MinimaxValue, %does minimum if curr maximizing, and vice versa
+      do_minimax(Counter, AfterCrankState, OpponentMinimaxValue, OpponentScore, _),
+      CurrMoveScore is (-1) * OpponentScore,
+      %if the curr moves score is higher than the max score we've reached, then continue recursively
+      % with the max score = curr moves score
+      (CurrMoveScore > CurrMaxScore ->
+        select_move_minimax(Moves,State,Counter,MinimaxValue,CurrMoveScore,CurrMove,MaxScore,BestMove)
+      ; select_move_minimax(Moves,State,Counter,MinimaxValue,CurrMaxScore,CurrBestMove,MaxScore,BestMove)
+      ). 
