@@ -118,3 +118,69 @@ self_preservation(PieceColour, [Blue,Red], [NewBlue,NewRed], [X,Y,X1,Y1]) :-
     nth1(2,Max,[X,Y,X1,Y1]),
     make_move([X,Y,X1,Y1], [Blue,Red], [NewBlue,NewRed]).
 
+% the Score that we refer to is the (Number of Player’s pieces – Number of Opponent’s pieces)
+% that we have to maximise in land_grab. We generate this in the land_grab_condition function.
+
+land_grab(PieceColour, [Blue,Red], [NewBlue,NewRed], [X,Y,X1,Y1]) :-
+    findall([Score, [PosX, PosY, PosX1, PosY1], AfterCrankState ],
+            (land_grab_condition(PieceColour, [Blue,Red], Score, [PosX, PosY, PosX1, PosY1], AfterCrankState)),
+            MovesResults),
+    max_member(minimum_comparison, Max, MovesResults),
+    nth1(2,Max,[X,Y,X1,Y1]),
+    make_move([X,Y,X1,Y1], [Blue,Red], [NewBlue,NewRed]).
+
+land_grab_condition(PieceColour, [Blue, Red], Score, [X,Y,X1,Y1], AfterCrankState) :-
+    opponent(PieceColour, Opponent),
+    colour_num(PieceColour, PlayerIndexNum),
+    colour_num(Opponent, OpponentIndexNum),
+    find_all_possible_moves(PieceColour, [Blue, Red], AllMoves),
+    member([X,Y,X1,Y1], AllMoves),
+    make_move([X,Y,X1,Y1],[Blue,Red], UpdatedState),
+    next_generation(UpdatedState, AfterCrankState),
+    nth1(PlayerIndexNum, AfterCrankState, PlayerStates),
+    length(PlayerStates, PiecesNumber),
+    nth1(OpponentIndexNum, AfterCrankState, OpponentStates),
+    length(OpponentStates, OppPiecesNumber),
+    Score is PiecesNumber-OppPiecesNumber.
+
+
+minimax('b',[Blue,Red],[NewBlue,Red],Move) :- 
+    minimax_make_move('b',Blue,Red,Move),
+    alter_board(Move,Blue,NewBlue).
+
+minimax('r',[Blue,Red],[Blue,NewRed],Move) :- 
+     minimax_make_move('r',Red,Blue,Move),
+     alter_board(Move,Red,NewRed).
+
+%minimax(PieceColour, State, UpdatedState, [X,Y,X1,Y1]) :-
+
+minimax_make_move(Colour,PlayerPieces,OppPieces,Move) :-
+    findall(([X,Y,X1,Y1],Score),
+            (
+             member([X,Y],PlayerPieces),neighbour_position(X,Y,[X1,Y1]),
+             \+member([X1,Y1],PlayerPieces),
+             \+member([X1,Y1],OppPieces),
+             minimax_score(Colour,[X,Y,X1,Y1],[PlayerPieces,OppPieces],Score)
+            ),
+            PossibleMoveScore),
+     findall(Score, member((_,Score),PossibleMoveScore),ScoreList),
+     max_member(minimum_comparison, MaxScore, ScoreList),
+     member((Move,MaxScore),PossibleMoveScore).
+
+minimax_score('b',Move,[Blue,Red],Score)
+   :- alter_board(Move,Blue,NewBlue),
+      next_generation([NewBlue,Red],NextState),
+      land_grab('r',NextState,EndState,_AfterCrank),
+      next_generation(EndState,[EndBlue,EndRed]),
+      length(EndBlue,PlayerScore),
+      length(EndRed,OppScore),
+      Score is PlayerScore - OppScore.
+
+minimax_score('r',Move,[Red,Blue],Score)
+   :- alter_board(Move,Red,NewRed),
+      next_generation([Blue,NewRed],NextState),
+      land_grab('b',NextState,EndState,_AfterCrank),
+      next_generation(EndState,[EndBlue,EndRed]),
+      length(EndBlue,OppScore),
+      length(EndRed,PlayerScore),
+      Score is PlayerScore - OppScore.
