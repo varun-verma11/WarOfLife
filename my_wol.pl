@@ -94,9 +94,9 @@ bloodlust(PieceColour, [Blue, Red], [NewBlue, NewRed], [X,Y,X1,Y1]) :-
            length(OPStates,OppPiecesNumber)
         ),
         MovesResults),
-        min_member(minimum_comparison,Min,MovesResults),
-        nth1(2,Min,[X,Y,X1,Y1]),
-        make_move([X,Y,X1,Y1], [Blue,Red], [NewBlue,NewRed]).
+    min_member(minimum_comparison,Min,MovesResults),
+    nth1(2,Min,[X,Y,X1,Y1]),
+    make_move([X,Y,X1,Y1], [Blue,Red], [NewBlue,NewRed]).
 
 
 /*
